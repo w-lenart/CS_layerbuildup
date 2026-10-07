@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cold spray layer build-up</title>
+<style>
+:root{
+  --panel:#eef0ef;
+  --plate:#ffffff;
+  --ink:#15201f;
+  --ink2:#5a6765;
+  --ink3:#8c9793;
+  --rule:#c9d0ce;
+  --rule2:#dde2e0;
+  --kinetic:#185fa5;
+  --deposit:#4d5c86;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.shell{max-width:1280px;margin:0 auto;padding:28px 24px 56px}
+header{border-bottom:1px solid var(--rule);padding-bottom:18px;margin-bottom:22px}
+h1{font-size:25px;font-weight:500;letter-spacing:-0.022em;margin:0 0 6px}
+.lede{margin:0;color:var(--ink2);max-width:76ch}
+.layout{display:flex;gap:22px;align-items:flex-start}
+.rail{flex:0 0 292px;background:var(--plate);border:1px solid var(--rule);border-radius:3px}
+.stage{flex:1 1 auto;min-width:0}
+fieldset{border:0;border-top:1px solid var(--rule2);margin:0;padding:14px 16px 16px}
+fieldset:first-of-type{border-top:0}
+legend{padding:0;font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px}
+.row{display:flex;align-items:center;gap:10px;margin-top:9px}
+.row label{flex:1 1 auto;color:var(--ink2);font-size:13px;min-width:0}
+.row input[type=number],.row select{
+  flex:0 0 86px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;
+  padding:5px 6px;border:1px solid var(--rule);border-radius:2px;background:#fbfcfc;color:var(--ink);
+}
+.row select{flex:0 0 108px;font-family:var(--sans)}
+.row.check label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.slide{margin-top:13px}
+.slide:first-of-type{margin-top:8px}
+.slide .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.slide .top span{color:var(--ink2);font-size:13px}
+.slide .top output{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:6px 0 0;accent-color:var(--deposit)}
+.btns{display:flex;gap:8px;margin-top:4px}
+details{border-top:1px solid var(--rule2)}
+details>summary{
+  list-style:none;cursor:pointer;padding:12px 16px;font-size:13px;font-weight:500;color:var(--ink);
+  display:flex;justify-content:space-between;align-items:center;
+}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"+";color:var(--ink3);font-family:var(--mono);font-weight:400}
+details[open]>summary::after{content:"\2212"}
+details .inner{padding:0 16px 16px}
+details .inner .row:first-child{margin-top:0}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--kinetic);outline-offset:1px}
+button{
+  font-family:var(--sans);font-size:13px;color:var(--ink);background:#fbfcfc;
+  border:1px solid var(--rule);border-radius:2px;padding:6px 12px;cursor:pointer;
+}
+button:hover{background:#f1f4f3;border-color:var(--ink3)}
+button:active{background:#e9edec}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary:hover{background:#2a3836}
+button.quiet{border-color:transparent;background:transparent;color:var(--ink2);padding:4px 2px}
+button.quiet:hover{color:var(--ink);text-decoration:underline;background:transparent}
+.plate{background:var(--plate);border:1px solid var(--rule);border-radius:3px;padding:14px 16px 12px;margin-bottom:18px}
+.plate h2{font-size:14px;font-weight:500;margin:0 0 2px}
+.plate p.hint{margin:0 0 10px;color:var(--ink3);font-size:12.5px;min-height:1.55em}
+.status{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+.status span:first-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
+canvas{display:block;width:100%}
+.insight{margin:12px 0 0;font-size:13.5px;color:var(--ink);max-width:88ch;min-height:2.6em}
+.readout{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--plate);border:1px solid var(--rule);border-radius:3px;margin-bottom:18px}
+.cell{padding:12px 14px;border-left:1px solid var(--rule2);min-width:0}
+.cell:first-child{border-left:0}
+.cell .k{font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .v{font-family:var(--mono);font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;margin-top:3px;white-space:nowrap}
+.charts{display:flex;gap:18px}
+.charts .plate:first-child{flex:2 1 0;min-width:0}
+.charts .plate:last-child{flex:1 1 0;min-width:0}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.notes{border-top:1px solid var(--rule);margin-top:34px;padding-top:20px;color:var(--ink2)}
+.notes h2{font-size:15px;font-weight:500;color:var(--ink);margin:0 0 10px}
+.notes h3{font-size:13.5px;font-weight:500;color:var(--ink);margin:18px 0 6px}
+.notes p,.notes li{max-width:86ch;font-size:13px}
+.notes ol,.notes ul{padding-left:20px;margin:6px 0}
+.notes code{font-family:var(--mono);font-size:12.5px;background:#e4e8e7;padding:1px 4px;border-radius:2px}
+@media (max-width:1060px){
+  .layout{flex-direction:column}
+  .rail{flex:1 1 auto;width:100%}
+  .readout{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cell:nth-child(4){border-left:0}
+  .cell:nth-child(n+4){border-top:1px solid var(--rule2)}
+  .charts{flex-direction:column;gap:0}
+}
+@media (max-width:560px){
+  .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cell:nth-child(odd){border-left:0}
+  .cell:nth-child(n+3){border-top:1px solid var(--rule2)}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header>
+  <h1>Cold spray layer build-up</h1>
+  <p class="lede">A single nozzle rastering along one track. Change the feeder speed, stand-off and traverse speed and watch how tall each layer grows and how evenly it grows. Changing a setting restarts the build and keeps the last run as a comparison.</p>
+</header>
+
+<div class="layout">
+
+  <form class="rail" id="rail" autocomplete="off" onsubmit="return false">
+    <fieldset>
+      <legend>Process</legend>
+      <div class="slide">
+        <div class="top"><span>Powder feeder speed</span><output id="rpmOut" for="rpm">10.0 rpm</output></div>
+        <input type="range" id="rpm" min="1" max="30" step="0.5" value="10">
+      </div>
+      <div class="slide">
+        <div class="top"><span>Stand-off distance</span><output id="sodOut" for="sod">30 mm</output></div>
+        <input type="range" id="sod" min="5" max="60" step="1" value="30">
+      </div>
+      <div class="slide">
+        <div class="top"><span>Nozzle traverse speed</span><output id="vOut" for="v">50 mm/s</output></div>
+        <input type="range" id="v" min="10" max="300" step="5" value="50">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Run</legend>
+      <div class="btns">
+        <button type="button" class="primary" id="btnPlay">Pause</button>
+        <button type="button" id="btnReset">Restart build</button>
+      </div>
+      <div class="row"><label for="stop">Stop after</label><select id="stop">
+        <option value="5">5 passes</option>
+        <option value="10">10 passes</option>
+        <option value="20" selected>20 passes</option>
+        <option value="50">50 passes</option>
+        <option value="0">Keep going</option>
+      </select></div>
+      <div class="row"><label for="speed">Playback</label><select id="speed">
+        <option value="0.5">0.5× real time</option>
+        <option value="1">1× real time</option>
+        <option value="2" selected>2× real time</option>
+        <option value="4">4× real time</option>
+        <option value="8">8× real time</option>
+        <option value="16">16× real time</option>
+      </select></div>
+      <div class="row"><label for="exag">Deposit drawn</label><select id="exag">
+        <option value="1">1× true height</option>
+        <option value="2">2× true height</option>
+        <option value="5">5× true height</option>
+        <option value="10" selected>10× true height</option>
+        <option value="20">20× true height</option>
+        <option value="50">50× true height</option>
+        <option value="100">100× true height</option>
+      </select></div>
+      <div class="row check"><label><input type="checkbox" id="autoReset" checked> Restart when settings change</label></div>
+    </fieldset>
+
+    <details>
+      <summary>Powder and feeder</summary>
+      <div class="inner">
+        <div class="row"><label for="mat">Coating material</label><select id="mat">
+          <option value="8.78">Copper</option>
+          <option value="2.65">Aluminium</option>
+          <option value="4.38">Titanium</option>
+          <option value="7.76">316L stainless</option>
+          <option value="8.70">Nickel</option>
+          <option value="custom">Custom</option>
+        </select></div>
+        <div class="row"><label for="rho">Coating density, g/cm³</label><input type="number" id="rho" step="0.01" min="0.5" max="22" value="8.78"></div>
+        <div class="row"><label for="k">Feed per rpm, g/min</label><input type="number" id="k" step="0.1" min="0.1" max="20" value="2.5"></div>
+        <div class="row"><label for="npulse">Feed pulses per turn</label><input type="number" id="npulse" step="1" min="1" max="200" value="24"></div>
+        <div class="row"><label for="amp">Pulsation, ± %</label><input type="number" id="amp" step="1" min="0" max="60" value="10"></div>
+        <div class="row"><label for="noise">Random feed noise, ± %</label><input type="number" id="noise" step="0.5" min="0" max="30" value="3"></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Spray jet</summary>
+      <div class="inner">
+        <div class="row"><label for="demax">Peak deposition efficiency, %</label><input type="number" id="demax" step="1" min="1" max="100" value="85"></div>
+        <div class="row"><label for="s0">Spray spot at exit σ₀, mm</label><input type="number" id="s0" step="0.1" min="0.3" max="10" value="1.5"></div>
+        <div class="row"><label for="theta">Jet half-angle, °</label><input type="number" id="theta" step="0.1" min="0" max="15" value="3.5"></div>
+        <div class="row"><label for="lb">Bow-shock length, mm</label><input type="number" id="lb" step="0.5" min="0.5" max="40" value="6"></div>
+        <div class="row"><label for="sj">Free-jet loss begins, mm</label><input type="number" id="sj" step="1" min="5" max="200" value="40"></div>
+        <div class="row"><label for="lj">Free-jet decay length, mm</label><input type="number" id="lj" step="1" min="5" max="500" value="60"></div>
+      </div>
+    </details>
+  </form>
+
+  <div class="stage">
+
+    <div class="plate">
+      <div class="status"><span id="statusLeft">Pass 0 of 20</span><span id="statusRight">Deposit drawn 10× true height</span></div>
+      <canvas id="scene" height="470" role="img" aria-label="Animated side view of a cold spray nozzle traversing a substrate and building up a coating"></canvas>
+      <p class="insight" id="insight">—</p>
+    </div>
+
+    <div class="readout">
+      <div class="cell"><div class="k">Feed rate</div><div class="v" id="oFeed">—</div></div>
+      <div class="cell"><div class="k">Deposition efficiency</div><div class="v" id="oDe">—</div></div>
+      <div class="cell"><div class="k">Track width, FWHM</div><div class="v" id="oWidth">—</div></div>
+      <div class="cell"><div class="k">Height per pass</div><div class="v" id="oLayer">—</div></div>
+      <div class="cell"><div class="k">Build height</div><div class="v" id="oBuild">—</div></div>
+      <div class="cell"><div class="k">Height variation</div><div class="v" id="oVar">—</div></div>
+    </div>
+
+    <div class="charts">
+      <div class="plate">
+        <h2>Height along the track</h2>
+        <p class="hint" id="profHint">—</p>
+        <canvas id="prof" height="250" role="img" aria-label="Coating height profile along the track with the measured window shaded"></canvas>
+      </div>
+      <div class="plate">
+        <h2>Uniformity by pass</h2>
+        <p class="hint" id="covHint">Variation in the measured window after each pass.</p>
+        <canvas id="cov" height="250" role="img" aria-label="Coefficient of variation of coating height after each pass"></canvas>
+      </div>
+    </div>
+
+    <div class="tools">
+      <button type="button" id="pngScene">Save scene as PNG</button>
+      <button type="button" id="pngProf">Save profile as PNG</button>
+      <button type="button" id="csvProf">Export profile as CSV</button>
+      <button type="button" class="quiet" id="btnClearGhost">Clear comparison</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="notes">
+  <h2>What the model does</h2>
+  <ol>
+    <li>The feeder delivers mass at a rate proportional to disk speed, set by the feed-per-rpm calibration. On top of the mean it adds a periodic pulsation at the rotation rate times the number of feed pulses per turn, plus slowly wandering random noise with a half-second correlation time.</li>
+    <li>Each instant of spraying lays down a circular Gaussian footprint centred under the nozzle. The model tracks the track centreline, so the local growth rate is <code>q·DE / (ρ·2πσ²) · exp(−x²/2σ²)</code>. Summed over one pass at constant speed this gives the standard single-track peak height <code>h = q·DE / (ρ·v·σ·√2π)</code>, which is the height-per-pass readout.</li>
+    <li>Footprint width grows linearly with stand-off from a starting spot size at the exit, <code>σ = σ₀ + SOD·tan θ</code>.</li>
+    <li>Deposition efficiency falls off on both sides of an optimum stand-off: a bow-shock term <code>1 − exp(−SOD/L_b)</code> penalises short distances, and a free-jet term penalises distances beyond the onset you set.</li>
+    <li>The nozzle reverses at both ends of its path and holds stand-off relative to the mean surface, as a build with a z-step each layer would. Statistics are taken over the flat middle of the track, three footprint widths clear of the reversal points where the deposit tapers.</li>
+  </ol>
+
+  <h3>Why the three controls interact</h3>
+  <p>A moving Gaussian footprint is a spatial low-pass filter. Feeder pulses at frequency <code>f</code> are laid down with wavelength <code>λ = v/f</code> along the track, and the footprint passes a fraction <code>exp(−2π²σ²/λ²)</code> of their amplitude into the layer. Raising rpm raises <code>f</code> and shortens the wavelength. Slowing the traverse shortens it too. Increasing stand-off widens the footprint. All three push toward smoother layers, but stand-off pays for it in deposition efficiency and peak height, and slow traverse pays for it in heat input, which this model does not track.</p>
+
+  <p>There is a second, sharper interaction. With a back-and-forth raster, successive passes start at different points in the pulsation cycle, so their ripples partially cancel and the layer evens out with every pass. That cancellation fails when a round trip of the nozzle spans a whole number of pulsation periods, which happens whenever one pass spans a whole or half-whole number of them. The ripple then prints in the same place every layer. In this model at 10 rpm, twenty passes at 150 or 170 mm/s averaged the variation down from about 6% to under 0.5%, but at 160 mm/s, where each pass spans exactly four periods, it stayed near 3.4% and in some starts above 6%. The window narrows as you add passes: once the timing drifts by one full cycle over the run, cancellation is essentially complete. Real feeders jitter, which softens the effect, but it costs nothing to avoid, and the note under the animation flags it when your settings land on it.</p>
+
+  <h3>Checks you can run</h3>
+  <ul>
+    <li>Halve the traverse speed and the height per pass doubles. Double the feeder speed and it doubles again. That is mass conservation, and the simulated build height should track it.</li>
+    <li>At the default 10 rpm with random feed noise at zero and twenty passes, run 150 mm/s and then 160 mm/s. The second should finish several times less even than the first, and the note under the animation should flag it.</li>
+    <li>Set random feed noise to zero and stop after one pass. The height variation should come out close to the pulsation amplitude times the transmitted fraction quoted under the animation, divided by √2, since that is the standard deviation of a sine wave.</li>
+  </ul>
+
+  <h3>Limits you should state before anyone finds them</h3>
+  <ul>
+    <li>Two-dimensional centreline model of a single track. It does not model step-over between adjacent tracks, which is how area coatings are built and which introduces its own ripple.</li>
+    <li>Deposition efficiency does not depend on local surface slope. In reality the flanks of a tall track meet the jet at an angle and deposit less efficiently, which is why tall single-track builds narrow toward the top.</li>
+    <li>The deposition efficiency curve against stand-off is a phenomenological shape with adjustable length scales, not a gas-dynamics prediction. Fit it to your own efficiency-against-stand-off data, or use the deposition window tool to set the peak value.</li>
+    <li>Feeder pulsation is idealised as a single sine wave plus noise. A continuous-groove disk has no discrete pockets, so treat pulses per turn as an equivalent count fitted to a powder flow trace.</li>
+    <li>No thermal model. Slow traverse concentrates heat in the substrate, which can change efficiency and residual stress.</li>
+  </ul>
+
+  <h3>Sources</h3>
+  <ul>
+    <li>Ikeuchi and colleagues, Neural network modelling of track profile in cold spray additive manufacturing, Materials 12 (2019) 2827. doi:10.3390/ma12172827</li>
+    <li>Surface-aware data-driven modelling of overlapping-track profiles with a Gaussian superposing mean function, Journal of Thermal Spray Technology (2024). doi:10.1007/s11666-024-01733-3</li>
+    <li>Experimental and numerical investigations of titanium deposition for cold spray additive manufacturing as a function of standoff distance, Materials 14 (2021) 5492. doi:10.3390/ma14195492</li>
+    <li>Pattison and colleagues, Standoff distance and bow shock phenomena in the cold spray process, Surface and Coatings Technology (2008).</li>
+  </ul>
+</div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ==== core: model and simulation, no DOM access ====
+var L_MM=200, NCELL=800, DX=L_MM/NCELL, PATH_A=20, PATH_B=180, TAU_NOISE=0.5;
+
+function sigmaOf(p){ return p.s0+p.sod*Math.tan(p.theta*Math.PI/180); }
+function deOf(p){
+  var fb=1-Math.exp(-p.sod/p.lb);
+  var fj=Math.exp(-Math.max(0,p.sod-p.sj)/p.lj);
+  return (p.demax/100)*fb*fj;
+}
+function feedGs(p){ return p.k*p.rpm/60; }
+function pulseHz(p){ return p.rpm/60*p.npulse; }
+function hPass(p){ return feedGs(p)*deOf(p)/((p.rho*1e-3)*sigmaOf(p)*p.v*Math.sqrt(2*Math.PI)); }
+function wavelength(p){ var f=pulseHz(p); return f>0?p.v/f:Infinity; }
+function transmission(p){
+  var lam=wavelength(p), s=sigmaOf(p);
+  if(!isFinite(lam)) return 1;
+  return Math.exp(-2*Math.PI*Math.PI*s*s/(lam*lam));
+}
+var _spare=null;
+function gauss(){
+  if(_spare!==null){ var t=_spare; _spare=null; return t; }
+  var u=0; while(u===0) u=Math.random();
+  var w=Math.random(), r=Math.sqrt(-2*Math.log(u));
+  _spare=r*Math.sin(2*Math.PI*w);
+  return r*Math.cos(2*Math.PI*w);
+}
+function makeSim(stopAfter){
+  return {h:new Float64Array(NCELL), xn:PATH_A, dir:1, passes:0, tSim:0,
+          phase:Math.random()*2*Math.PI, noise:0, lastQ:0,
+          covHist:[], meanHist:[], done:false, stopAfter:stopAfter};
+}
+function simStats(sim,p){
+  var s=sigmaOf(p), a=PATH_A+3*s, b=PATH_B-3*s;
+  if(b-a<10){ var c=(PATH_A+PATH_B)/2; a=c-5; b=c+5; }
+  var i0=Math.ceil(a/DX-0.5), i1=Math.floor(b/DX-0.5);
+  var n=0,sum=0,sum2=0,mn=Infinity,mx=-Infinity,i,v;
+  for(i=i0;i<=i1;i++){ v=sim.h[i]; sum+=v; sum2+=v*v; n++; if(v<mn) mn=v; if(v>mx) mx=v; }
+  var mean=n?sum/n:0, sd=n?Math.sqrt(Math.max(0,sum2/n-mean*mean)):0;
+  return {mean:mean, sd:sd, cov:mean>0?sd/mean:0, pv:n?mx-mn:0, a:a, b:b};
+}
+function simStep(sim,dt,p){
+  if(sim.done||dt<=0) return false;
+  var sig=sigmaOf(p), de=deOf(p), rhoMM=p.rho*1e-3;
+  var q0=feedGs(p), f=pulseHz(p), amp=p.amp/100, nz=p.noise/100;
+  var n=Math.max(1,Math.ceil(dt*p.v/DX)), ds=dt/n;
+  var reach=4*sig, coef=1/(2*Math.PI*sig*sig), inv=1/(2*sig*sig);
+  var ea=Math.exp(-ds/TAU_NOISE), eb=nz*Math.sqrt(1-ea*ea);
+  var passed=false, k, i, i0, i1, q, rate, xm, d0, gk, rk, st;
+  var H=sim.h, cstep=Math.exp(-2*DX*DX*inv), twoPi=2*Math.PI;
+  for(k=0;k<n;k++){
+    sim.phase+=twoPi*f*ds;
+    if(sim.phase>twoPi) sim.phase-=twoPi;
+    sim.noise=sim.noise*ea+eb*gauss();
+    q=q0*(1+amp*Math.sin(sim.phase)+sim.noise);
+    if(q<0) q=0;
+    sim.lastQ=q;
+    rate=q*de/rhoMM*coef*ds;
+    xm=sim.xn+sim.dir*p.v*ds*0.5;
+    i0=Math.max(0,Math.floor((xm-reach)/DX));
+    i1=Math.min(NCELL-1,Math.ceil((xm+reach)/DX));
+    // exact recurrence for exp(-(d0+jΔ)²/2σ²) on an even grid: g *= r, r *= c
+    d0=(i0+0.5)*DX-xm;
+    gk=Math.exp(-d0*d0*inv);
+    rk=Math.exp(-(2*d0*DX+DX*DX)*inv);
+    for(i=i0;i<=i1;i++){ H[i]+=rate*gk; gk*=rk; rk*=cstep; }
+    sim.xn+=sim.dir*p.v*ds;
+    sim.tSim+=ds;
+    var flipped=false;
+    if(sim.xn>=PATH_B){ sim.xn=2*PATH_B-sim.xn; sim.dir=-1; flipped=true; }
+    else if(sim.xn<=PATH_A){ sim.xn=2*PATH_A-sim.xn; sim.dir=1; flipped=true; }
+    if(flipped){
+      passed=true;
+      sim.passes++;
+      st=simStats(sim,p);
+      sim.covHist.push(st.cov);
+      sim.meanHist.push(st.mean);
+      if(sim.stopAfter>0&&sim.passes>=sim.stopAfter){
+        sim.done=true;
+        sim.xn=sim.dir>0?PATH_A:PATH_B;
+        break;
+      }
+    }
+  }
+  return passed;
+}
+// ==== end core ====
+
+var $=function(id){ return document.getElementById(id); };
+var PHYS=["rpm","sod","v","rho","k","npulse","amp","noise","demax","s0","theta","lb","sj","lj"];
+
+function readParams(){
+  var p={};
+  PHYS.forEach(function(id){ p[id]=+$(id).value; });
+  if(!(p.rho>0)) p.rho=8.78;
+  if(!(p.lb>0)) p.lb=6;
+  if(!(p.lj>0)) p.lj=60;
+  if(!(p.s0>0)) p.s0=1.5;
+  if(!(p.k>0)) p.k=2.5;
+  if(!(p.npulse>=1)) p.npulse=1;
+  return p;
+}
+function describe(p){
+  return (+p.rpm).toFixed(1)+" rpm, "+Math.round(p.sod)+" mm stand-off, "+Math.round(p.v)+" mm/s";
+}
+
+var P=readParams();
+var sim=makeSim(+$("stop").value);
+var ghost=null;
+var running=true;
+var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+if(reduced) running=false;
+var particles=[], spawnAcc=0;
+
+function fmtH(mm){
+  var um=mm*1000;
+  if(um<10) return um.toFixed(1)+" µm";
+  if(um<1000) return Math.round(um)+" µm";
+  return mm.toFixed(2)+" mm";
+}
+
+// --- canvas sizing --------------------------------------------------------
+function fit(cv,h){
+  var dpr=window.devicePixelRatio||1, w=cv.clientWidth||700;
+  if(cv._w!==w||cv._h!==h||cv._d!==dpr){
+    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); cv.style.height=h+"px";
+    cv._w=w; cv._h=h; cv._d=dpr;
+  }
+  var ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle="#ffffff";
+  ctx.fillRect(0,0,w,h);
+  return {ctx:ctx,w:w,h:h};
+}
+function font(px){ return px+"px "+getComputedStyle(document.body).fontFamily; }
+function niceTicks(a,b,want){
+  var span=b-a; if(span<=0) return [a];
+  var raw=span/want, mag=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10)), norm=raw/mag, step;
+  if(norm<1.5) step=mag; else if(norm<3) step=2*mag; else if(norm<7) step=5*mag; else step=10*mag;
+  var out=[], v=Math.ceil(a/step-1e-9)*step;
+  while(v<=b+1e-9){ out.push(+v.toPrecision(10)); v+=step; }
+  if(!out.length||out[out.length-1]<b-1e-9) out.push(+v.toPrecision(10));
+  return out;
+}
+
+// --- scene ---------------------------------------------------------------
+var NOZ_S=1.15, NOZ_H=170*NOZ_S;
+function nozzle(ctx,cx,yExit){
+  var s=NOZ_S;
+  function poly(pts){
+    ctx.beginPath();
+    ctx.moveTo(cx+pts[0][0]*s,yExit+pts[0][1]*s);
+    for(var i=1;i<pts.length;i++) ctx.lineTo(cx+pts[i][0]*s,yExit+pts[i][1]*s);
+    ctx.closePath();
+  }
+  var g1=ctx.createLinearGradient(cx-34*s,0,cx+34*s,0);
+  g1.addColorStop(0,"#c4c4c4"); g1.addColorStop(0.45,"#f1f1f1"); g1.addColorStop(1,"#bdbdbd");
+  poly([[-34,-170],[34,-170],[34,-86],[21,-30],[21,0],[-21,0],[-21,-30],[-34,-86]]);
+  ctx.fillStyle=g1; ctx.fill();
+  ctx.strokeStyle="#a9a9a9"; ctx.lineWidth=1; ctx.stroke();
+  var g2=ctx.createLinearGradient(cx-19*s,0,cx+19*s,0);
+  g2.addColorStop(0,"#5f5f5f"); g2.addColorStop(0.45,"#a8a8a8"); g2.addColorStop(1,"#5a5a5a");
+  poly([[-19,-170],[19,-170],[19,-98],[5,-64],[5,-54],[9,0],[-9,0],[-5,-54],[-5,-64],[-19,-98]]);
+  ctx.fillStyle=g2; ctx.fill();
+  poly([[-3,-98],[3,-98],[2,-58],[6,0],[-6,0],[-2,-58]]);
+  ctx.fillStyle="#3f3f3f"; ctx.fill();
+}
+
+function drawScene(){
+  var cv=$("scene"), g=fit(cv,470), ctx=g.ctx, W=g.w, H=g.h;
+  var sx=W/L_MM, E=+$("exag").value;
+  var yBase=H-70;
+  var st=simStats(sim,P);
+  var ySurfMean=yBase-st.mean*E*sx;
+  var gap=26+P.sod*2.3;
+  var yExit=ySurfMean-gap;
+  var shift=Math.max(0,8-(yExit-NOZ_H));
+  var X=function(mm){ return mm*sx; };
+  var ySurf=function(mm){
+    var i=Math.round(mm/DX-0.5);
+    if(i<0) i=0; if(i>=NCELL) i=NCELL-1;
+    return yBase-sim.h[i]*E*sx;
+  };
+
+  ctx.save();
+  ctx.translate(0,shift);
+
+  ctx.fillStyle="#7389c2";
+  ctx.fillRect(0,yBase,W,28);
+
+  ctx.beginPath();
+  ctx.moveTo(0,yBase);
+  for(var i=0;i<NCELL;i++) ctx.lineTo((i+0.5)*DX*sx,yBase-sim.h[i]*E*sx);
+  ctx.lineTo(W,yBase);
+  ctx.closePath();
+  ctx.fillStyle="#4d5c86";
+  ctx.fill();
+
+  var nx=X(sim.xn);
+  ctx.fillStyle="#22346b";
+  for(var j=0;j<particles.length;j++){
+    var pt=particles[j];
+    var xmm=sim.xn+pt.dx*pt.u;
+    var px=nx+pt.jit*(1-pt.u)+pt.dx*sx*pt.u;
+    var py=yExit+pt.u*(ySurf(xmm)-yExit);
+    ctx.beginPath(); ctx.arc(px,py,2.2,0,Math.PI*2); ctx.fill();
+  }
+
+  nozzle(ctx,nx,yExit);
+
+  var flip=nx>W-120;
+  var dxL=flip?nx-46:nx+46;
+  ctx.strokeStyle="#8c9793"; ctx.fillStyle="#8c9793"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(dxL,yExit+4); ctx.lineTo(dxL,ySurfMean-4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dxL,yExit); ctx.lineTo(dxL-3.5,yExit+6); ctx.lineTo(dxL+3.5,yExit+6); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(dxL,ySurfMean); ctx.lineTo(dxL-3.5,ySurfMean-6); ctx.lineTo(dxL+3.5,ySurfMean-6); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(dxL-6,yExit); ctx.lineTo(dxL+6,yExit); ctx.moveTo(dxL-6,ySurfMean); ctx.lineTo(dxL+6,ySurfMean); ctx.stroke();
+  ctx.font=font(12); ctx.fillStyle="#5a6765"; ctx.textBaseline="middle";
+  ctx.textAlign=flip?"right":"left";
+  ctx.fillText(Math.round(P.sod)+" mm",flip?dxL-9:dxL+9,(yExit+ySurfMean)/2);
+
+  if(shift===0){
+    var ay=yBase+28+14, half=52, dir=sim.dir;
+    var x0=nx-dir*half, x1=nx+dir*half, head=16*dir;
+    ctx.fillStyle="#4d5c86";
+    ctx.beginPath();
+    ctx.moveTo(x0,ay-4); ctx.lineTo(x1-head,ay-4); ctx.lineTo(x1-head,ay-9);
+    ctx.lineTo(x1,ay); ctx.lineTo(x1-head,ay+9); ctx.lineTo(x1-head,ay+4); ctx.lineTo(x0,ay+4);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  if(!running&&sim.passes===0&&sim.tSim===0){
+    ctx.font=font(13); ctx.fillStyle="#5a6765"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("Press play to start the build",W/2,40);
+  }
+  if(shift>0&&st.mean>0){
+    ctx.font=font(12); ctx.fillStyle="#8c9793"; ctx.textAlign="right"; ctx.textBaseline="bottom";
+    ctx.fillText("View is following the build upward",W-10,H-8);
+  }
+}
+
+// --- profile chart -------------------------------------------------------
+function drawProfile(){
+  var cv=$("prof"), g=fit(cv,250), ctx=g.ctx, W=g.w, H=g.h;
+  var L=58, R=W-14, T=28, B=H-40;
+  var st=simStats(sim,P), i, maxH=0;
+  for(i=0;i<NCELL;i++) if(sim.h[i]>maxH) maxH=sim.h[i];
+  if(ghost) for(i=0;i<NCELL;i++) if(ghost.h[i]>maxH) maxH=ghost.h[i];
+  var useMM=maxH*1000>2000, unit=useMM?1:1000, uName=useMM?"mm":"µm";
+  var ymax=maxH*unit*1.15; if(ymax<=0) ymax=useMM?1:100;
+  var ticks=niceTicks(0,ymax,5); ymax=ticks[ticks.length-1]; if(ymax<=0) ymax=1;
+  var X=function(mm){ return L+mm/L_MM*(R-L); };
+  var Y=function(v){ return B-v/ymax*(B-T); };
+
+  ctx.fillStyle="#f1f5f9";
+  ctx.fillRect(X(st.a),T,X(st.b)-X(st.a),B-T);
+
+  ctx.strokeStyle="#e4e8e7"; ctx.lineWidth=1;
+  for(i=0;i<ticks.length;i++){ ctx.beginPath(); ctx.moveTo(L,Y(ticks[i])); ctx.lineTo(R,Y(ticks[i])); ctx.stroke(); }
+
+  if(sim.passes>0||sim.tSim>0){
+    var m=st.mean*unit, sd=st.sd*unit;
+    ctx.fillStyle="rgba(169,203,236,0.45)";
+    ctx.fillRect(X(st.a),Y(m+sd),X(st.b)-X(st.a),Y(m-sd)-Y(m+sd));
+  }
+
+  ctx.beginPath(); ctx.moveTo(X(0),B);
+  for(i=0;i<NCELL;i++) ctx.lineTo(X((i+0.5)*DX),Y(sim.h[i]*unit));
+  ctx.lineTo(X(L_MM),B); ctx.closePath();
+  ctx.fillStyle="rgba(77,92,134,0.88)"; ctx.fill();
+
+  if(ghost){
+    ctx.beginPath();
+    for(i=0;i<NCELL;i++){ var gx=X((i+0.5)*DX), gy=Y(ghost.h[i]*unit); if(i===0) ctx.moveTo(gx,gy); else ctx.lineTo(gx,gy); }
+    ctx.strokeStyle="#c0392b"; ctx.lineWidth=1.25; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  if(sim.passes>0||sim.tSim>0){
+    ctx.beginPath(); ctx.moveTo(X(st.a),Y(st.mean*unit)); ctx.lineTo(X(st.b),Y(st.mean*unit));
+    ctx.strokeStyle="#15201f"; ctx.lineWidth=1; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  ctx.strokeStyle="#9aa5a2"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,B); ctx.lineTo(R,B); ctx.stroke();
+  ctx.font=font(11.5); ctx.fillStyle="#5a6765";
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(i=0;i<ticks.length;i++) ctx.fillText(useMM?ticks[i].toFixed(ticks[i]%1?1:0):String(Math.round(ticks[i])),L-7,Y(ticks[i]));
+  ctx.textAlign="center"; ctx.textBaseline="top";
+  var tx=niceTicks(0,L_MM,8);
+  for(i=0;i<tx.length;i++){
+    ctx.beginPath(); ctx.moveTo(X(tx[i]),B); ctx.lineTo(X(tx[i]),B+4); ctx.stroke();
+    ctx.fillText(String(Math.round(tx[i])),X(tx[i]),B+7);
+  }
+  ctx.fillText("position along the track, mm",(L+R)/2,B+24);
+  ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText("height, "+uName,L,T-10);
+
+  var hint="Shaded band is the measured window. ";
+  if(sim.passes>0||sim.tSim>0) hint+="Mean "+fmtH(st.mean)+", one standard deviation "+fmtH(st.sd)+", peak to valley "+fmtH(st.pv)+". ";
+  if(ghost) hint+="Dashed red line is the previous run at "+ghost.label+".";
+  $("profHint").textContent=hint;
+}
+
+// --- uniformity chart ----------------------------------------------------
+function drawCov(){
+  var cv=$("cov"), g=fit(cv,250), ctx=g.ctx, W=g.w, H=g.h;
+  var L=46, R=W-12, T=28, B=H-40;
+  var cur=sim.covHist, gh=ghost?ghost.cov:[];
+  var stopN=+$("stop").value;
+  var nMax=Math.max(stopN>0?stopN:0,cur.length,gh.length,2);
+  var yMax=0,i;
+  for(i=0;i<cur.length;i++) yMax=Math.max(yMax,cur[i]*100);
+  for(i=0;i<gh.length;i++) yMax=Math.max(yMax,gh[i]*100);
+  yMax=yMax>0?yMax*1.2:5;
+  var yt=niceTicks(0,yMax,4); yMax=yt[yt.length-1];
+  var X=function(n){ return L+(n-1)/(nMax-1)*(R-L); };
+  var Y=function(v){ return B-v/yMax*(B-T); };
+
+  ctx.strokeStyle="#e4e8e7"; ctx.lineWidth=1;
+  for(i=0;i<yt.length;i++){ ctx.beginPath(); ctx.moveTo(L,Y(yt[i])); ctx.lineTo(R,Y(yt[i])); ctx.stroke(); }
+
+  function series(arr,color,dash,dots){
+    if(!arr.length) return;
+    ctx.beginPath();
+    for(var k=0;k<arr.length;k++){ var x=X(k+1), y=Y(arr[k]*100); if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
+    if(dots){ ctx.fillStyle=color; for(var k2=0;k2<arr.length;k2++){ ctx.beginPath(); ctx.arc(X(k2+1),Y(arr[k2]*100),2.6,0,Math.PI*2); ctx.fill(); } }
+  }
+  if(cur.length>=1){
+    var ref=[]; for(i=1;i<=nMax;i++) ref.push(cur[0]/Math.sqrt(i));
+    series(ref,"#b4bcba",[3,3],false);
+  }
+  series(gh,"#c0392b",[5,4],false);
+  series(cur,"#185fa5",[],true);
+
+  ctx.strokeStyle="#9aa5a2"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,B); ctx.lineTo(R,B); ctx.stroke();
+  ctx.font=font(11.5); ctx.fillStyle="#5a6765";
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(i=0;i<yt.length;i++) ctx.fillText(yt[i].toFixed(yt[i]%1?1:0),L-6,Y(yt[i]));
+  ctx.textAlign="center"; ctx.textBaseline="top";
+  var xt=niceTicks(1,nMax,5);
+  for(i=0;i<xt.length;i++){ if(xt[i]<1) continue; ctx.beginPath(); ctx.moveTo(X(xt[i]),B); ctx.lineTo(X(xt[i]),B+4); ctx.stroke(); ctx.fillText(String(Math.round(xt[i])),X(xt[i]),B+7); }
+  ctx.fillText("passes",(L+R)/2,B+24);
+  ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText("variation, %",L,T-10);
+
+  var ht="Variation in the measured window after each pass. Solid blue is this run";
+  if(gh.length) ht+=", dashed red the previous run";
+  if(cur.length) ht+=", and dotted grey is how random averaging alone would fall, as 1/√passes";
+  $("covHint").textContent=ht+".";
+}
+
+// --- readouts ------------------------------------------------------------
+function updateReadout(){
+  var st=simStats(sim,P), sig=sigmaOf(P);
+  $("oFeed").textContent=(feedGs(P)*60).toFixed(1)+" g/min";
+  $("oDe").textContent=Math.round(deOf(P)*100)+"%";
+  $("oWidth").textContent=(2.3548*sig).toFixed(1)+" mm";
+  $("oLayer").textContent=fmtH(hPass(P));
+  $("oBuild").textContent=(sim.passes>0||sim.tSim>0)?fmtH(st.mean):"—";
+  $("oVar").textContent=(sim.passes>0)?(st.cov*100).toFixed(1)+"%":"—";
+  var stopN=sim.stopAfter;
+  $("statusLeft").textContent="Pass "+sim.passes+(stopN>0?" of "+stopN:"")+", "+sim.tSim.toFixed(1)+" s of spraying";
+  $("statusRight").textContent="Deposit drawn "+$("exag").value+"× true height";
+  var bp=$("btnPlay");
+  if(sim.done){ bp.textContent="Run again"; }
+  else bp.textContent=running?"Pause":"Play";
+}
+function updateInsight(){
+  var f=pulseHz(P), lam=wavelength(P), T=transmission(P), w=2.3548*sigmaOf(P);
+  var pct=T*100, through;
+  if(pct>=10) through=Math.round(pct)+"%";
+  else if(pct>=1) through=pct.toFixed(1)+"%";
+  else through="under 1%";
+  var s="Feeder pulses arrive at "+f.toFixed(1)+" Hz, so they repeat every "+lam.toFixed(1)+" mm along the track. ";
+  if(T>0.8) s+="The "+w.toFixed(1)+" mm spray spot is too narrow to smooth them, and "+through+" of the pulsation reaches each layer.";
+  else if(T<0.02) s+="The "+w.toFixed(1)+" mm spray spot averages them out almost completely; "+through+" of the pulsation reaches each layer.";
+  else s+="The "+w.toFixed(1)+" mm spray spot smooths them, letting "+through+" of the pulsation through to each layer.";
+  var ppp=(PATH_B-PATH_A)/lam, rt=2*ppp, near=Math.round(rt);
+  var nRun=(+$("stop").value)||50, walk=(nRun/2)*Math.abs(rt-near);
+  if(near>=1&&T>0.1&&walk<0.5){
+    var periods=(near/2)%1===0?String(near/2):(near/2).toFixed(1);
+    s+=" Each pass spans almost exactly "+periods+" pulsation periods, so the ripple prints in the same place every layer instead of averaging out. Nudge the feeder or traverse speed slightly to break the timing.";
+  }
+  var lossBow=1-(1-Math.exp(-P.sod/P.lb))/Math.max(1e-6,1-Math.exp(-P.sj/P.lb));
+  if(P.sod<P.sj&&lossBow>0.05) s+=" At this stand-off the bow shock costs about "+Math.round(lossBow*100)+"% of peak deposition efficiency.";
+  else if(P.sod>P.sj){
+    var lossJet=1-Math.exp(-(P.sod-P.sj)/P.lj);
+    if(lossJet>0.05) s+=" At this stand-off the slowing free jet costs about "+Math.round(lossJet*100)+"% of peak deposition efficiency.";
+  }
+  $("insight").textContent=s;
+}
+
+// --- particles -----------------------------------------------------------
+var FALL=0.22, Q_REF=2.5*10/60;
+function updateParticles(dt){
+  var sig=sigmaOf(P), i;
+  if(running&&!sim.done){
+    spawnAcc+=dt*240*Math.max(0,sim.lastQ)/Q_REF;
+    while(spawnAcc>=1&&particles.length<700){
+      spawnAcc-=1;
+      particles.push({u:Math.random()*0.15, dx:gauss()*sig, jit:(Math.random()-0.5)*7});
+    }
+    if(spawnAcc>1) spawnAcc=0;
+  }
+  if(running||sim.done){
+    for(i=particles.length-1;i>=0;i--){
+      particles[i].u+=dt/FALL;
+      if(particles[i].u>=1) particles.splice(i,1);
+    }
+  }
+}
+
+// --- run control ---------------------------------------------------------
+function restart(keepGhost){
+  if(keepGhost&&sim.passes>=1){
+    ghost={h:sim.h.slice(), cov:sim.covHist.slice(), label:describe(sim.params||P)};
+  }
+  sim=makeSim(+$("stop").value);
+  sim.params=JSON.parse(JSON.stringify(P));
+  particles=[]; spawnAcc=0;
+  running=true;
+  drawProfile(); drawCov(); updateReadout();
+}
+
+var lastT=0, chartT=0;
+function loop(now){
+  var dt=lastT?Math.min(0.05,(now-lastT)/1000):0;
+  lastT=now;
+  if(running&&!sim.done){
+    var passed=simStep(sim,dt*(+$("speed").value),P);
+    if(passed){ drawCov(); }
+    if(sim.done){ running=false; drawCov(); }
+  }
+  updateParticles(dt);
+  drawScene();
+  chartT+=dt;
+  if(chartT>0.2){ chartT=0; drawProfile(); updateReadout(); }
+  requestAnimationFrame(loop);
+}
+
+var debounce=null;
+function onPhysChange(){
+  P=readParams();
+  $("rpmOut").textContent=(+$("rpm").value).toFixed(1)+" rpm";
+  $("sodOut").textContent=$("sod").value+" mm";
+  $("vOut").textContent=$("v").value+" mm/s";
+  updateInsight(); updateReadout();
+  if($("autoReset").checked){
+    clearTimeout(debounce);
+    debounce=setTimeout(function(){ restart(true); },220);
+  }
+}
+PHYS.forEach(function(id){
+  $(id).addEventListener("input",function(){
+    if(id==="rho") $("mat").value="custom";
+    onPhysChange();
+  });
+});
+$("mat").addEventListener("change",function(){
+  if($("mat").value!=="custom"){ $("rho").value=$("mat").value; onPhysChange(); }
+});
+$("stop").addEventListener("change",function(){
+  sim.stopAfter=+$("stop").value;
+  updateInsight();
+  if(sim.stopAfter>0&&sim.passes>=sim.stopAfter){ sim.done=true; running=false; }
+  else if(sim.done){ sim.done=false; }
+  drawCov(); updateReadout();
+});
+$("exag").addEventListener("change",updateReadout);
+$("btnPlay").addEventListener("click",function(){
+  if(sim.done){ restart(true); return; }
+  running=!running;
+  updateReadout();
+});
+$("btnReset").addEventListener("click",function(){ restart(true); });
+$("btnClearGhost").addEventListener("click",function(){ ghost=null; drawProfile(); drawCov(); });
+
+function download(name,blob){
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },0);
+}
+function savePng(cv,name){ cv.toBlob(function(b){ if(b) download(name,b); },"image/png"); }
+$("pngScene").addEventListener("click",function(){ savePng($("scene"),"cold-spray-buildup-scene.png"); });
+$("pngProf").addEventListener("click",function(){ savePng($("prof"),"cold-spray-buildup-profile.png"); });
+$("csvProf").addEventListener("click",function(){
+  var st=simStats(sim,P), lines=[], i;
+  lines.push("# cold spray layer build-up");
+  lines.push("# feeder_rpm,"+P.rpm);
+  lines.push("# standoff_mm,"+P.sod);
+  lines.push("# traverse_mm_s,"+P.v);
+  lines.push("# feed_g_min,"+(feedGs(P)*60).toFixed(3));
+  lines.push("# coating_density_g_cm3,"+P.rho);
+  lines.push("# feed_per_rpm_g_min,"+P.k);
+  lines.push("# pulses_per_turn,"+P.npulse);
+  lines.push("# pulsation_pct,"+P.amp);
+  lines.push("# noise_pct,"+P.noise);
+  lines.push("# peak_DE_pct,"+P.demax);
+  lines.push("# sigma0_mm,"+P.s0);
+  lines.push("# jet_half_angle_deg,"+P.theta);
+  lines.push("# bow_shock_length_mm,"+P.lb);
+  lines.push("# free_jet_onset_mm,"+P.sj);
+  lines.push("# free_jet_decay_mm,"+P.lj);
+  lines.push("# passes,"+sim.passes);
+  lines.push("# window_mm,"+st.a.toFixed(2)+","+st.b.toFixed(2));
+  lines.push("# mean_height_um,"+(st.mean*1000).toFixed(2));
+  lines.push("# sd_um,"+(st.sd*1000).toFixed(2));
+  lines.push("# cov_pct,"+(st.cov*100).toFixed(3));
+  lines.push("position_mm,height_um"+(ghost?",previous_run_height_um":""));
+  for(i=0;i<NCELL;i++){
+    lines.push(((i+0.5)*DX).toFixed(3)+","+(sim.h[i]*1000).toFixed(3)+(ghost?","+(ghost.h[i]*1000).toFixed(3):""));
+  }
+  download("cold-spray-buildup-profile.csv",new Blob([lines.join("\n")],{type:"text/csv"}));
+});
+
+var rt=null;
+window.addEventListener("resize",function(){ clearTimeout(rt); rt=setTimeout(function(){ drawProfile(); drawCov(); },120); });
+
+sim.params=JSON.parse(JSON.stringify(P));
+updateInsight(); updateReadout(); drawProfile(); drawCov();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
